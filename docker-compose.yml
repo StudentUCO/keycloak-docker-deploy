@@ -64,10 +64,11 @@ services:
     networks:
       - keycloak-internal
       - proxy-net
-    # Optimización de arranque para producción
-    command: start --optimized --http-relative-path /auth
+    # CORRECCIÓN: Eliminado --http-relative-path /auth para compatibilidad con imagen oficial
+    command: start --optimized
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /auth/health/ready HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      # CORRECCIÓN: Ruta de healthcheck actualizada a raíz (sin /auth)
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
       interval: 30s
       timeout: 5s
       retries: 3
