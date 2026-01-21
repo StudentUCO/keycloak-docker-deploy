@@ -1,0 +1,89 @@
+version: '3.9'
+
+services:
+  # ==========================================
+  # DATABASE (PostgreSQL)
+  # ==========================================
+  keycloak-db:
+    image: postgres:15-alpine
+    container_name: keycloak-db-server
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${KEYCLOAK_DB_NAME:-keycloak}
+      POSTGRES_USER: ${KEYCLOAK_DB_USER:-keycloak}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    networks:
+      - keycloak-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER:-keycloak}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Optimización Postgres para producción (básica)
+    command: postgres -c 'max_connections=100'
+
+  # ==========================================
+  # KEYCLOAK (Identity Server)
+  # ==========================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: keycloak-server
+    restart: unless-stopped
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    environment:
+      # Database
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db-server:5432/${KEYCLOAK_DB_NAME:-keycloak}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      
+      # Admin User
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      
+      # Proxy & Hostname (Producción)
+      KC_PROXY: edge
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME}
+      KC_HOSTNAME_STRICT: "true"
+      KC_HOSTNAME_STRICT_HTTPS: "true"
+      KC_HTTP_ENABLED: "true"
+      
+      # Observabilidad
+      KC_LOG_LEVEL: ${KC_LOG_LEVEL:-INFO}
+      KC_METRICS_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+    networks:
+      - keycloak-internal
+      - proxy-net
+    # Optimización de arranque para producción
+    command: start --optimized --http-relative-path /auth
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /auth/health/ready HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  keycloak_db_data:
+    name: keycloak_postgres_data_prod # Nombre explícito para facilitar backups
+
+networks:
+  keycloak-internal:
+    driver: bridge
+  proxy-net:
+    external: true
+    name: proxy-shared-network # Debe coincidir con tu repo reverse-proxy
