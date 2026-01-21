@@ -67,11 +67,12 @@ services:
     # CORRECCIÓN: Eliminado --optimized para permitir auto-build con driver Postgres
     command: start
     healthcheck:
-      # CORRECCIÓN: Healthcheck simplificado para shell sh (sin bash)
+      # CORRECCIÓN: Healthcheck simplificado para shell sh (sin bash) y start_period agregado
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /health/ready HTTP/1.1\\nHost: localhost\\n\\n' >&3 && cat <&3 | grep -q '200 OK'"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 90s
     logging:
       driver: "json-file"
       options:
