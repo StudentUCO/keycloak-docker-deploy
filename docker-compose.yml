@@ -65,8 +65,9 @@ services:
     # CORRECCIÓN: Eliminado --optimized para permitir auto-build con driver Postgres
     command: start
     healthcheck:
-      # Healthcheck usando bash (requerido para /dev/tcp) + start_period para evitar falsos negativos
-      test: ["CMD", "bash", "-lc", "exec 3<>/dev/tcp/127.0.0.1/8080; echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' >&3; cat <&3 | grep -q '200 OK'"]
+      # Keycloak 24+ nativo: Usa /dev/tcp porque curl/wget no están garantizados en imagenes distroless/minimal.
+      # Esta es la forma más "nativa" y ligera posible sin depender de herramientas externas.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
       interval: 30s
       timeout: 10s
       retries: 3
