@@ -64,8 +64,8 @@ services:
     networks:
       - keycloak-internal
       - proxy-net
-    # CORRECCIÓN: Eliminado --http-relative-path /auth para compatibilidad con imagen oficial
-    command: start --optimized
+    # CORRECCIÓN: Eliminado --optimized para permitir auto-build con driver Postgres
+    command: start
     healthcheck:
       # CORRECCIÓN: Ruta de healthcheck actualizada a raíz (sin /auth)
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
