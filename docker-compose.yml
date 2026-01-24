@@ -62,6 +62,7 @@ services:
 
       # Proxy & Hostname (Producción)
       KC_PROXY: edge
+      KC_PROXY_HEADERS: "xforwarded" # CRITICAL FIX: Force parsing of X-Forwarded headers
       KC_HOSTNAME: ${KEYCLOAK_HOSTNAME}
       KC_HOSTNAME_STRICT: "true"
       KC_HOSTNAME_STRICT_HTTPS: "true"
