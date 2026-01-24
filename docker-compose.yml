@@ -3,7 +3,7 @@ services:
   # DATABASE (PostgreSQL)
   # ==========================================
   keycloak-db:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: keycloak-db-server
     restart: unless-stopped
     environment:
@@ -26,12 +26,24 @@ services:
         max-file: "3"
     # Optimización Postgres para producción (básica)
     command: postgres -c 'max_connections=100'
+    
+    # Hardening & Resources
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.2'
+          memory: 256M
 
   # ==========================================
   # KEYCLOAK (Identity Server)
   # ==========================================
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0
+    image: quay.io/keycloak/keycloak:26.0
     container_name: keycloak-server
     restart: unless-stopped
     depends_on:
@@ -49,7 +61,8 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
 
       # Proxy & Hostname (Producción)
-      KC_PROXY: edge
+      # KC_PROXY eliminado en v26 favor de KC_PROXY_HEADERS
+      KC_PROXY_HEADERS: "xforwarded" 
       KC_HOSTNAME: ${KEYCLOAK_HOSTNAME}
       KC_HOSTNAME_STRICT: "true"
       KC_HOSTNAME_STRICT_HTTPS: "true"
@@ -59,6 +72,10 @@ services:
       KC_LOG_LEVEL: ${KC_LOG_LEVEL:-INFO}
       KC_METRICS_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
+      
+      # Java Tuning (Evitar OOM Kill)
+      JAVA_OPTS_APPEND: "-XX:MaxRAMPercentage=75.0"
+      
     networks:
       - keycloak-internal
       - proxy-net
@@ -77,6 +94,18 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+        
+    # Hardening & Resources
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1.5G
+        reservations:
+          cpus: '0.5'
+          memory: 768M
 
 volumes:
   keycloak_db_data:
