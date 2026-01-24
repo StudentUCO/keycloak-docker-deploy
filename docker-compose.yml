@@ -43,7 +43,7 @@ services:
   # KEYCLOAK (Identity Server)
   # ==========================================
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0
+    image: quay.io/keycloak/keycloak:26.0
     container_name: keycloak-server
     restart: unless-stopped
     depends_on:
@@ -61,8 +61,8 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
 
       # Proxy & Hostname (Producción)
-      KC_PROXY: edge
-      KC_PROXY_HEADERS: "xforwarded"
+      # KC_PROXY eliminado en v26 favor de KC_PROXY_HEADERS
+      KC_PROXY_HEADERS: "xforwarded" 
       KC_HOSTNAME: ${KEYCLOAK_HOSTNAME}
       KC_HOSTNAME_STRICT: "true"
       KC_HOSTNAME_STRICT_HTTPS: "true"
