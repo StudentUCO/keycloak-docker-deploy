@@ -1,3 +1,5 @@
+name: keycloak-docker-deploy
+
 services:
   # ==========================================
   # DATABASE (PostgreSQL)
